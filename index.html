@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MP3 Album Cover Embedder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    button {
+      margin-top: 30px;
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>MP3 Album Cover Embedder</h1>
+
+<label>
+  MP3 file:
+  <input type="file" id="mp3Input" accept="audio/mpeg">
+</label>
+
+<label>
+  Album cover image (JPG/PNG):
+  <input type="file" id="imageInput" accept="image/jpeg,image/png">
+</label>
+
+<button id="processBtn">Embed cover & download</button>
+
+<!-- ID3 writer library -->
+<script src="https://cdn.jsdelivr.net/npm/browser-id3-writer@4.4.0/dist/browser-id3-writer.min.js"></script>
+
+<script>
+  const mp3Input = document.getElementById("mp3Input");
+  const imageInput = document.getElementById("imageInput");
+  const processBtn = document.getElementById("processBtn");
+
+  processBtn.addEventListener("click", async () => {
+    if (!mp3Input.files[0] || !imageInput.files[0]) {
+      alert("Please select both an MP3 file and an image.");
+      return;
+    }
+
+    const mp3File = mp3Input.files[0];
+    const imageFile = imageInput.files[0];
+
+    const mp3ArrayBuffer = await mp3File.arrayBuffer();
+    const imageArrayBuffer = await imageFile.arrayBuffer();
+
+    const writer = new ID3Writer(mp3ArrayBuffer);
+
+    writer.setFrame("APIC", {
+      type: 3, // Front cover
+      data: new Uint8Array(imageArrayBuffer),
+      description: "Album cover"
+    });
+
+    writer.addTag();
+
+    const taggedBlob = new Blob([writer.arrayBuffer], {
+      type: "audio/mpeg"
+    });
+
+    const downloadUrl = URL.createObjectURL(taggedBlob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = mp3File.name.replace(/\.mp3$/i, "") + "_cover.mp3";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(downloadUrl);
+  });
+</script>
+
+</body>
+</html>
